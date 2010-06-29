@@ -41,4 +41,6 @@ $config->append('    ident = '.$ident."\n");
 $config->append('    real = "'.$ident.'"'."\n");
 $config->append('}'."\n\n");
 
+my $debug = prompt('x', 'Where should Keldair spit out debug information?', 'You could use a nick here as well', '#debug' );
+my $general = prompt('x', 'What channels should Keldair join?', 'You can specify multiple by seperating them with a comma (#one,#two,#three)', '#keldair' );
 
