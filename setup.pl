@@ -41,8 +41,37 @@ $config->append('    ident = '.$ident."\n");
 $config->append('    real = "'.$ident.'"'."\n");
 $config->append('}'."\n\n");
 
+my $todebug = prompt('y', 'Should Keldair join a debug channel?', 'This might not be useful unless you\'re a developer.', 'N' );
+
+if ($todebug eq 1)
+{
+
 my $debug = prompt('x', 'Where should Keldair spit out debug information?', 'You could use a nick here as well', '#debug' );
+
+}
+else
+{
+
+my $debug = '';
+
+}
+
+my $tojoin = prompt('y', 'Do you want Keldair to automatically join any channels?', 'Note, this is NOT including the debug channel!', 'Y' );
+
+if ($tojoin eq 1)
+{
+
 my $general = prompt('x', 'What channels should Keldair join?', 'You can specify multiple by seperating them with a comma (#one,#two,#three)', '#keldair' );
+
+}
+
+else
+{
+
+my $general = '';
+
+}
+
 
 $config->append('channels {'."\n");
 $config->append('    debug = "'.$debug.'"'."\n");
