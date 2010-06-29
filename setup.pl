@@ -25,15 +25,20 @@ $config->append('# Do not modify this config unless you know what you\'re doing!
 $config->append('server {'."\n");
 
 my $host = prompt('x', 'What is the hostname of the IRC server?', 'Where are you connecting', 'irc.example.tld' );
+print("\n");
 my $port = prompt('n', 'What port should Keldair connect to?', '', '6667' );
+print("\n");
 
 $config->append('    host = '.$host."\n");
 $config->append('    port = '.$port."\n");
 $config->append('}'."\n\n");
 
 my $nick = prompt('x', 'What nick should the bot use?', 'Nickname', 'Keldair' );
+print("\n");
 my $ident = prompt('a', 'What should be the bot\'s ident?', 'nick!<this stuff here>@host', 'keldair' );
+print("\n");
 my $real = prompt('x', 'What should be the bot\'s real name?', '', 'Keldair IRC Bot' );
+print("\n");
 
 $config->append('keldair {'."\n");
 $config->append('    nick = '.$nick."\n");
@@ -42,7 +47,9 @@ $config->append('    real = "'.$ident.'"'."\n");
 $config->append('}'."\n\n");
 
 my $debug = prompt('x', 'Where should Keldair spit out debug information?', 'You could use a nick here as well', '#debug' );
+print("\n");
 my $general = prompt('x', 'What channels should Keldair join?', 'You can specify multiple by seperating them with a comma (#one,#two,#three)', '#keldair' );
+print("\n");
 
 $config->append('channels {'."\n");
 $config->append('    debug = "'.$debug.'"'."\n");
@@ -50,6 +57,18 @@ $config->append('    general = "'.$general.'"'."\n");
 $config->append('}'."\n\n");
 
 my $anick = prompt('x', 'What is the bot owner\'s nickname?', 'This is probably your\'s!', 'misconfigured' );
+print("\n");
 my $areal = prompt('x', 'What is the bot owner\'s real name?', 'This is also probably your\'s!', 'misconfigured admin' );
+print("\n");
 my $amail = prompt('x', 'What is the bot owner\'s email address?', 'This ALSO is probably your\'s!', 'admin@misconfigured.tld' );
+print("\n");
+
+$config->append('admin {'."\n");
+$config->append('    nick = "'.$anick.'"'."\n");
+$config->append('    real = "'.$areal.'"'."\n");
+$config->append('    email = \''.$amail.'\''."\n");
+$config->append('}'."\n\n");
+
+print("Keldair setup is now complete!\nRun ./keldair to start the bot!\n");
+
 
