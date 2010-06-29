@@ -49,3 +49,7 @@ $config->append('    debug = "'.$debug.'"'."\n");
 $config->append('    general = "'.$general.'"'."\n");
 $config->append('}'."\n\n");
 
+my $anick = prompt('x', 'What is the bot owner\'s nickname?', 'This is probably your\'s!', 'misconfigured' );
+my $areal = prompt('x', 'What is the bot owner\'s real name?', 'This is also probably your\'s!', 'misconfigured admin' );
+my $amail = prompt('x', 'What is the bot owner\'s email address?', 'This ALSO is probably your\'s!', 'admin@misconfigured.tld' );
+
