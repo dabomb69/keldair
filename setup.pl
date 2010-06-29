@@ -6,10 +6,10 @@ use File::Data;
 use Term::Prompt;
 
 my $ascii ='
- _  _   ___   _      ___     _     ___   ____  
- ) |) / ) __( ) |    \   \   )_\   )_ _( /  _ \ 
- | ( (  | _)  | (__  | ) (  /( )\  _| |_ )  \' / 
- )_|)_\ )___( )____( /___/ )_/ \_()_____(|_()_\ 
+_  _   ___   _      ___     _     ___   ____  
+) |) / ) __( ) |    \   \   )_\   )_ _( /  _ \ 
+| ( (  | _)  | (__  | ) (  /( )\  _| |_ )  \' / 
+)_|)_\ )___( )____( /___/ )_/ \_()_____(|_()_\ 
 ';
 print($ascii."\n\n");
 print("Welcome to the Keldair setup wizard!\nPlease follow the instructions to ensure proper results.\n\n");
@@ -46,13 +46,13 @@ my $todebug = prompt('y', 'Should Keldair join a debug channel?', 'This might no
 if ($todebug eq 1)
 {
 
-my $debug = prompt('x', 'Where should Keldair spit out debug information?', 'You could use a nick here as well', '#debug' );
+    my $debug = prompt('x', 'Where should Keldair spit out debug information?', 'You could use a nick here as well', '#debug' );
 
 }
 else
 {
 
-my $debug = '';
+    my $debug = '';
 
 }
 
@@ -61,14 +61,14 @@ my $tojoin = prompt('y', 'Do you want Keldair to automatically join any channels
 if ($tojoin eq 1)
 {
 
-my $general = prompt('x', 'What channels should Keldair join?', 'You can specify multiple by seperating them with a comma (#one,#two,#three)', '#keldair' );
+    my $general = prompt('x', 'What channels should Keldair join?', 'You can specify multiple by seperating them with a comma (#one,#two,#three)', '#keldair' );
 
 }
 
 else
 {
 
-my $general = '';
+    my $general = '';
 
 }
 
