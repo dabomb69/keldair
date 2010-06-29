@@ -85,29 +85,7 @@ while ($line = <$sock>) {
     }
     
     if ($command eq 'PRIVMSG') {
-        if ($mtext =~ /^nazi/) {
-            msg($channel,"5,5XXXXXXXXXXXXXXXXXX");
-            msg($channel,"5,5XX0,0XXXXXXXXXXXXXX5,5XX");
-            msg($channel,"5,5XX0,0XX1,1XX0,0XX1,1XXXXXX0,0XX5,5XX");
-            msg($channel,"5,5XX0,0XX1,1XX0,0XX1,1XX0,0XXXX0,0XX5,5XX");
-            msg($channel,"5,5XX0,0XX1,1XXXXXXXXXX0,0XX5,5XX");
-            msg($channel,"5,5XX0,0XX0,0XXXX1,1XX0,0XX1,1XX0,0XX5,5XX");
-            msg($channel,"5,5XX0,0XX1,1XXXXXX0,0XX1,1XX0,0XX5,5XX");
-            msg($channel,"5,5XX0,0XXXXXXXXXXXXXX5,5XX");
-            msg($channel,"5,5XXXXXXXXXXXXXXXXXX");
         }
-        
-      if ($channel ne '#defocus') {
-		  if ($line =~ /.*starcoder.*/) {
-			  msg($channel,'This is getting sorta offtopic, take it to #defocus guys, ok?');
-		  }
-	  }
-    }
-	if ($command eq 'KICK') {
-		sleep 5;
-		snd("JOIN #technoirc");
-	}
-    
 }
 
 
