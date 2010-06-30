@@ -1,0 +1,342 @@
+#######################################################################
+#
+# Copyright (c) 2004-2009 by Karl Gaissmaier
+#
+# This library is free software; you can redistribute it and/or modify
+# it under the same terms as Perl itself. 
+#
+# VERSION: '0.13'
+#
+#######################################################################
+#
+# Do you still wish to understand this grammar?
+# Be warned, dragons ahead, recursive brain damage possible!
+#
+# First, read the Config::Scoped manual to understand what's going on here!
+#
+# Second, read the Parse::RecDescent manual and learn it by heart to
+# understand what's going on here!
+#
+# INHERITANCE!
+# The real action is done via $thisparser->_method() calls
+# to methods in the Config::Scoped package in order to keep the actions in
+# this grammar file simple and maintainable.
+#
+# The logic is heavily based on localization via <rulevar's> in order to
+# handle scopes properly.
+#
+# Call by value are always deep copies via Storable::dclone.
+#
+# Blocks, declarations and hashes start new scopes for parameters, macros
+# and warnings.
+#
+# Include files are handled by a cloned Config::Scoped parser.
+# Include files import parameters and macros to the current scope 
+# but not the warnings. Warnings are scoped within the include files and don't
+# leak to the parent file. If you don't wish the leakage of parameters and
+# macros to the parent file, put the %inlcude pragma inside a block {}.
+#
+# Declarations collect the parameters and store them
+# in the unscoped $config hashref. The declaration name(s) are the
+# keys in the $config hashref. Declarations are never scoped,
+# they always add to the global config. Declarations are just (named)
+# collectors of the parameters.
+#
+# The principle is easy, isn't it?
+#
+#########################################################################
+#
+# START of GRAMMAR for Config::Scoped
+#
+#########################################################################
+#
+# STARTRULE
+#
+
+config :      config_item(s) eofile 
+	    | {
+		# Error handling:
+		# fetch only the first error, this is the most important one
+		my $parse_error = shift @{ $thisparser->{errors} };
+
+		  # keep P::RD silent, see the P::RD FAQ
+		  $thisparser->{errors} = undef;
+
+		  # throw an exception
+		  Config::Scoped::Error::Parse->throw(
+		    -text => $parse_error->[0],
+		    -line => $parse_error->[1],
+		    -file => $thisparser->{local}{cfg_file}
+		  );
+	      } <reject>
+
+
+# hack, could be done without this intermediate rule, but
+# the error messages are more readable with this hack.
+#
+# commit hack: with a <commit> we get better error messages
+config_item :   <commit> statement
+	       | <error?> <reject>
+
+#########################################################################
+# STATEMENT'S
+#########################################################################
+#
+# use $break to shortcut the alternate productions after a rejected commit
+# in a subrule.
+#
+# This is a hack since P::RD is missing a <committed?: action> directive.
+# I do this programmatically with a localized <rulevar> and { ++$break }
+#
+statement :   <rulevar: local $break>
+statement :    <reject: $break> parameter
+	     | <reject: $break> block
+	     | <reject: $break> declaration
+	     | <reject: $break> pragma
+	     | <reject: $break> comment
+
+#########################################################################
+# BLOCK'S: { statement(s) }
+#########################################################################
+#
+# Open a new scope, inherit (deep copy) the scoped hashes.
+#
+
+block : <rulevar: local $thisparser->{local}{params} =
+	      Storable::dclone $thisparser->{local}{params}>
+
+block :	<rulevar: local $thisparser->{local}{macros} =
+	      Storable::dclone $thisparser->{local}{macros}>
+
+block : <rulevar: local $thisparser->{local}{warnings} =
+	      Storable::dclone $thisparser->{local}{warnings}>
+
+block : '{' <commit> { ++$break } statement(s) '}' stop_pattern
+       | <error?> <reject>
+
+#########################################################################
+# DECLARATIONS
+#########################################################################
+#
+# Open a new scope, inherit (deep copy) the scoped hashes.
+#
+
+declaration : <rulevar:	local $thisparser->{local}{params} =
+		  Storable::dclone $thisparser->{local}{params}>
+
+declaration : <rulevar:	local $thisparser->{local}{macros} =
+		  Storable::dclone $thisparser->{local}{macros}>
+
+declaration : <rulevar:	local $thisparser->{local}{warnings} =
+		  Storable::dclone $thisparser->{local}{warnings}>
+
+declaration : key(s) '{' <commit> { ++$break } decl_item(s?) '}' stop_pattern
+		{
+		    $thisparser->{local}{line} = $thisline;
+		    $thisparser->_store_declaration(
+			name  => $item{'key(s)'},
+			value => $thisparser->{local}{params},
+		    );
+
+		    # rule success, errors in the method don't raise syntax errors
+		    1;
+		}
+	      | <error?> <reject>
+
+decl_item : ...!'}' <commit> parameter_or_macro_or_comment_or_warning
+	    | <error?> <reject>
+
+#########################################################################
+# HASH
+#########################################################################
+#
+# Open a new scope, inherit (deep copy) the localized hashes
+# for macros and warnings.
+# Reset the params hash!
+#
+
+hash : <rulevar: local $thisparser->{local}{params} = {}>
+
+hash : <rulevar: local $thisparser->{local}{macros} =
+	      Storable::dclone $thisparser->{local}{macros}>
+
+hash : <rulevar: local $thisparser->{local}{warnings} =
+	      Storable::dclone $thisparser->{local}{warnings}>
+
+hash : '{' <commit> { ++$break } hash_item(s?) '}'
+	    {
+		# returns just the filled parameter hash as value
+		$return = $thisparser->{local}{params};
+	    }
+      | <error?> <reject>
+
+hash_item : ...!'}' <commit> parameter_or_macro_or_comment_or_warning m/,?/
+	  | <error?> <reject>
+
+#########################################################################
+# LIST
+#########################################################################
+#
+# lists start no scope, they are just a special kind of parameters
+#
+list : <rulevar: local @list>
+list : '[' <commit> { ++$break } list_item(s?) ']'
+	    {
+		# returns just the filled list as value
+		$return = \@list;
+	    }
+	| <error?> <reject>
+
+list_item :  ...!']' <commit> hash_or_list_or_value_or_comment m/,?/
+	  | <error?> <reject>
+
+#########################################################################
+# PARAMETER'S
+#########################################################################
+#
+parameter : key /=>?/ <commit> { ++$break } hash_or_list_or_value stop_pattern
+	    {
+		$thisparser->{local}{line}  = $thisline;
+		# store the parameter in the local scope
+		$thisparser->_store_parameter(
+		    name  => $item{key},
+		    value => $item{hash_or_list_or_value},
+		);
+
+		# rule success, errors in the method don't raise syntax errors
+		1;
+	    }
+	 | <error?> <reject>
+
+#########################################################################
+# intermediate compounds
+#########################################################################
+#
+# use $break to shortcut the alternations after a rejected commit
+parameter_or_macro_or_comment_or_warning : <rulevar: local $break>
+parameter_or_macro_or_comment_or_warning :  <reject: $break> parameter
+					 |  <reject: $break> macro
+				         |  <reject: $break> warning
+				         |  <reject: $break> comment
+
+# use $break to shortcut the alternations after a rejected commit
+hash_or_list_or_value_or_comment : <rulevar: local $break>
+hash_or_list_or_value_or_comment :  <reject: $break> hash_or_list_or_value
+				{
+				    # fill the list, but not with comments!
+				    push @list, $item{hash_or_list_or_value}
+				}
+			     |  <reject: $break> comment
+
+# use $break to shortcut the alternations after a rejected commit
+hash_or_list_or_value :  <rulevar: local $break>
+hash_or_list_or_value :   <reject: $break> hash
+			| <reject: $break> list
+			| <reject: $break> value
+
+#########################################################################
+# PRAGMA's
+#########################################################################
+#
+pragma : macro | include | warning
+
+macro : '%macro' <commit> { ++$break } key value stop_pattern
+	    {
+		$thisparser->{local}{line} = $thisline;
+		$thisparser->_store_macro(
+		    name  => $item{key},
+		    value => $item{value},
+		);
+
+		# rule success, errors in the method don't raise syntax errors
+		1;
+	    }
+
+	| <error?> <reject>
+
+# call recursively a new P::RD parser for this include file
+# call by value for the current $warnings
+include : <rulevar: local $thisparser->{local}{warnings} =
+		  Storable::dclone $thisparser->{local}{warnings}>
+
+include : '%include' <commit> { ++$break } value stop_pattern
+	    {
+		$thisparser->{local}{line}  = $thisline;
+		$thisparser->_include( file => $item{value}, );
+
+		# rule success, errors in the method don't raise syntax errors
+		1;
+	    }
+	  | <error?> <reject>
+
+warning : warning_short | warning_long
+
+warning_short : /%warnings?/i on_off <commit> { ++$break } stop_pattern
+	{
+	    $thisparser->{local}{line} = $thisline;
+	    $thisparser->_set_warnings( switch => $item{on_off} );
+
+	    # rule success, errors in the method don't raise syntax errors
+	    1;
+	}
+	| <error?> <reject>
+
+warning_long :
+    /%warnings?/i ...!on_off key <commit> { ++$break } on_off stop_pattern
+    {
+	$thisparser->{local}{line} = $thisline;
+        $thisparser->_set_warnings(
+            name   => $item{key},
+            switch => $item{on_off},
+        );
+
+        # rule success, errors in the method don't raise syntax errors
+        1;
+    }
+    | <error?> <reject>
+
+on_off : /on|off/i
+
+#########################################################################
+# KEY and VALUE'S
+#########################################################################
+#
+key   : perl_code | token | perl_quote
+value : perl_code | token | perl_quote
+
+# everything unless separator characters, better than \w in unicode times
+token : /[^ \s >< }{ )( [\] ; , ' " = # % ]+/x
+
+perl_quote : .../"|'|<</ <perl_quotelike>
+    {
+	$thisparser->{local}{line} = $thisline;
+        $return = $thisparser->_quotelike( value => $item{__DIRECTIVE1__} );
+    }
+
+perl_code : /perl_code|eval/i <perl_codeblock>
+    {
+	$thisparser->{local}{line} = $thisline;
+        $return = $thisparser->_perl_code( expr => $item{__DIRECTIVE1__}, );
+    }
+
+#########################################################################
+# helpers
+#########################################################################
+#
+# The skip reset is necessary, since the default eats the newlines.
+# stop_pattern is:
+# a newline, a semicolon, a comma or a look-ahead for '}', ']', '\s'
+#
+stop_pattern : <skip: qr//> m/\s* (\n | ; | , | \z | (?=[ \} \] \s ]) )/x
+
+eofile : /\z/
+
+comment : m/#.*\n/
+
+#########################################################################
+#
+# END of GRAMMAR, without headache?
+#
+#########################################################################
+
+# vim: sw=4 sts=4 ft=perl

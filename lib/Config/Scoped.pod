@@ -1,0 +1,1204 @@
+=head1 NAME
+
+Config::Scoped - feature rich configuration file parser
+
+=head1 SYNOPSIS
+
+  use Config::Scoped;
+
+  $compartment = new Safe 'YOUR_SHARE';
+
+  $warnings = 'off';  # or 'on'
+
+  $warnings = { declaration  => 'off',  # or 'on'
+		digests	     => 'off',
+		macro	     => 'off',
+		parameter    => 'off',
+		permissions  => 'off',
+		your_warning => 'off' };
+
+  $parser = new Config::Scoped file 	=> $config_file,
+			       lc   	=> $lc,
+			       safe 	=> $compartment,
+			       warnings => $warnings,
+			       your_key => $your_value;
+
+  $config = $parser->parse;
+  $config = $parser->parse(text => $config_string);
+
+  $parser->set_warnings(name   => $name,
+  			switch => 'on');   # or 'off'
+
+  $parser->warnings_on(name => $name) and ...
+
+  $parser->store_cache;
+  $parser->store_cache   (cache => $file);
+
+  $parser->retrieve_cache;
+  $parser->retrieve_cache(cache => $file);
+
+
+
+=head1 ABSTRACT
+
+C<Config::Scoped> is a configuration file parser.
+
+=head2 Features
+
+=over 4
+
+=item *
+
+recursive data structures with scalars, lists, and hashes
+
+=item *
+
+parses ISC named and dhcpd config files
+
+
+=item *
+
+parses many Perl data structures without C<eval>, C<do> or C<require>
+
+=item *
+
+Perl quoting syntax: single quotes (C<''>), double quotes(C<"">), and here docs (C<< <<EOF >>)
+
+=item *
+
+Perl code evaluation in C<Safe> compartments
+
+=item *
+
+simplified syntax with minimal punctuation
+
+=item *
+
+include files with recursion checks
+
+=item *
+
+controlled macro expansion in double quoted tokens
+
+=item *
+
+lexically scoped parameter assignments and directives
+
+=item *
+
+duplicate macro, parameter, and declaration checks
+
+=item *
+
+file permission and ownership safety checks
+
+=item *
+
+fine control over error checking
+
+=item *
+
+error messages report config file names and line numbers
+
+=item *
+
+exception-based error handling
+
+=item *
+
+C<Parse::RecDescent>-based parser; precompiled grammar for speed
+
+=item *
+
+configuration caching with MD5 checksums on the original files
+
+=item *
+
+may be subclassed to build parsers with specialized features
+
+=back
+
+=head1 REQUIRES
+
+=over 4
+
+=item *
+
+C<Parse::RecDescent>
+
+=item *
+
+C<Error>
+
+=back
+
+
+=head1 EXPORTS
+
+Nothing.
+
+=head1 METHODS
+
+=over 4
+
+=item I<$parser> = C<new> C<Config::Scoped> 
+C<file>     => I<$config_file>,
+C<lc>       => I<$lc>,
+C<safe>     => I<$compartment>,
+C<warnings> => I<$warnings>,
+C<your_key> => I<$your_value> [, ...]
+
+Creates and returns a new C<Config::Scoped> object.
+All parameters are optional.
+
+I<$config_file> is the configuration file to parse.
+If I<$config_file> is omitted,
+then a I<$config_string> must be provided to the C<parse> method (see below).
+
+If I<$lc> is true, all declaration and parameter names will be converted to lower case.
+
+I<$compartment> is a C<Safe> compartment for evaluating Perl code blocks in the configuration file.
+Defaults to a C<Safe> compartment with no extra shares and the C<:default> operator tag.
+
+I<$warnings> may be
+
+=over 4
+
+=item the literal string C<'on'> or C<'off'>
+
+to set all warnings on or off
+
+=item a hash reference as shown in the L</SYNOPSIS>
+
+to set each warning as specified in the hash
+
+=back
+
+All warnings are on by default.
+
+Arbitrary key/value pairs may be passed to the constructor,
+and will be stored in the I<$parser> object.
+This is useful primarily to subclasses.
+
+
+=item I<$config> = I<$parser>->C<parse>
+
+=item I<$config> = I<$parser>->C<parse>(C<text> => I<$config_string>)
+
+Parses the configuration and returns a reference to the config hash.
+
+The first form parses the I<$config_file> that was provided to the constructor.
+If I<$config_file> was not provided to the constructor, this form C<die>s.
+
+The second form parses the I<$config_string>.
+
+This method should only be called once.
+
+
+=item I<$parser>->C<set_warnings>(C<name> => I<$name>, C<switch> => C<'on'>)
+
+=item I<$parser>->C<set_warnings>(C<name> => I<$name>, C<switch> => C<'off'>)
+
+Set warning I<$name> on or off.
+
+
+=item I<$on> = I<$parser>->C<warnings_on>(name => $name)
+
+Returns true if warning I<$name> is on.
+This is useful primarily to subclasses.
+
+
+=item I<$parser>->C<store_cache>(C<cache> => C<$cache_file>)
+
+=item I<$parser>->C<store_cache>
+
+Stores the config hash on disk for rapid retrieval.
+If I<$config_file> was provided to the constructor,
+then the stored form includes checksums of I<$config_file>
+and any included files.
+
+The first form writes to I<$cache_file>.
+
+The second form writes to I<$config_file>C<.dump>.
+If I<$config_file> was not provided to the constructor, the second form C<die>s.
+
+
+=item I<$config> = I<$parser>->C<retrieve_cache>(C<cache> => I<$cache_file>)
+
+=item I<$config> = I<$parser>->C<retrieve_cache>
+
+Retrieves the I<$config> hash from a file that was created by C<store_cache>.
+
+The first form reads I<$cache_file>.
+
+The second form reads I<$config_file>C<.dump>.
+If I<$config_file> was not provided to the constructor, the second form C<die>s.
+
+The stored file is subject to C<digests> and C<permissions> checks.
+
+=back
+
+=head1 EXCEPTIONS
+
+All methods C<die> on error.
+
+C<Config::Scoped::Error> defines a hierarchy of classes that represent
+C<Config::Scoped> errors. When a method detects an error, it creates
+an instance of the corresponding class and throws it. The error
+classes are all subclasses of C<Config::Scoped::Error>. See
+L<Config::Scoped::Error> for the complete list.
+
+If the exception is not caught, the program terminates, and
+C<Config::Scoped> prints the config file name and line number where
+the error was detected to C<STDERR>.
+
+
+=head1 CONFIG FILE FORMAT
+
+C<Config::Scoped> reads configuration files.
+If we have a config file
+
+  % cat host.cfg
+  host
+  {
+      name = cpan.org
+      port = 22
+  }
+  %
+
+we can read it into Perl with code like
+
+  $parser = new Config::Scoped file => host.cfg;
+  $config = $parser->parse;
+
+The resulting C<$config> is always a hash ref.
+We'll call this the I<config hash>, and write
+
+  $config = {
+	      host => { name => 'cpan.org',
+  			port => 22 	  }
+	    }
+
+to show its contents.
+Fundamentally, C<Config::Scoped> is a way to specify the contents of the config hash.
+
+
+=head2 Config files and config strings
+
+As shown in the L</SYNOPSIS>, C<Config::Scoped> can obtain a
+configuration from a I<$config_file>, passed to the constructor, or
+from a I<$config_string>, passed to the C<parse> method. For
+simplicity, we'll talk about parsing configuration files,
+distinguishing configuration strings only when necessary.
+
+=head2 File layout
+
+Config files are free-form ascii text.
+Comments begin with C<#>, and extend to the end of the line.
+
+
+=head2 Declarations
+
+The top-level elements of a config file are called I<declarations>.
+A declaration consists of a name, followed by a block
+
+  foo
+  {
+  }
+
+  bar
+  {
+  }
+
+The declaration names become keys in the config hash.
+The value of each key is another hash ref.
+The config shown above parses to
+
+  $config = {
+	      foo => { },
+	      bar => { }
+	    }
+
+You can create additional levels in the config hash simply by
+listing successive declaration names before the block. This config
+
+  dog hound
+  {
+  }
+
+  dog beagle
+  {
+  }
+
+  cat
+  {
+  }
+
+parses to
+
+  $config = {
+              dog => { hound  => { },
+         	       beagle => { } },
+
+              cat => { }
+            }
+
+Declarations may not be nested.
+
+
+=head2 Parameters
+
+The ultimate purpose of a configuration file is to provide data values for a program.
+These values are specified by I<parameters>.
+Parameters have the form
+
+  name = value
+
+and go inside declaration blocks. The
+
+  name = value
+
+parameters in a spec file become
+
+  $name => $value
+
+pairs inside the declaration hashes in Perl code.
+For example, this configuration
+
+  dog
+  {
+      legs  = 4
+      wings = 0
+  }
+
+  bird
+  {
+      legs  = 2
+      wings = 2
+  }
+
+parses to
+
+  $config = {
+              dog  => { legs  => 4,
+         	        wings => 0 },
+
+              bird => { legs  => 2,
+         	        wings => 2 }
+            }
+
+Parameter values can be scalars, lists or hashes.
+Scalar values may be numbers or strings
+
+  shape = square
+  sides = 4
+
+Lists values are enclosed in square brackets
+
+  colors = [ red green blue ]
+  primes = [ 2 3 5 7 11 13  ]
+
+Hash values are enclosed in curly brackets
+
+  capitals = { England => London
+  	       France  => Paris  }
+
+A hash value is also called a I<hash block>.
+
+Lists and hashes can be nested to arbitrary depth
+
+  Europe
+  {
+    currency = euro
+
+    cities   = { England => [ London Birmingham Liverpool ]
+    	         France  => [ Paris Canne Calais ] 	   }
+  }
+
+parses to
+
+  $config = {
+	      Europe => {
+			  currency => 'euro',
+
+			  cities => { England => [ 'London', 'Birmingham', 'Liverpool' ],
+                                      France  => [ 'Paris', 'Canne', 'Calais'          ] }
+                        }
+            }
+
+The C<Config::Scoped> data syntax is similar to the Perl data syntax,
+and C<Config::Scoped> will parse many Perl data structures. In
+general, C<Config::Scoped> requires less punctuation that Perl. Note
+that C<Config::Scoped> allows arrow (C<< => >>) or equals (C<=>)
+between hash keys and values, but not comma (C<,>)
+
+  capitals = { England => London	# OK
+  	       France  =  Paris 	# OK
+	       Germany ,  Berlin	# error
+	     }
+
+
+=head3 _GLOBAL
+
+If a config file contains no declarations at all
+
+  name = cpan.org
+  port = 22
+
+then any parameters will be placed in a C<_GLOBAL> declaration in the
+config hash
+
+  $config = {
+	      _GLOBAL => { name = cpan.org
+			   port = 22	   }
+	    }
+
+This allows very simple config files with just parameters and no
+declarations.
+
+
+=head2 Blocks, scoping and inheritance
+
+Each declaration block in a config file creates a lexical scope.
+Parameters inside a declaration are scoped to that block.
+
+Parameters are inherited by all following declarations within their scope.
+If all your animals have four legs, you can save some typing by writing
+
+  legs = 4
+  cat {}
+  dog {}
+
+which parses to
+
+  $config = {
+              cat => { legs => 4 }
+              dog => { legs => 4 }
+            }
+
+If some of your animals have two legs,
+you can create additional scopes with anonymous blocks to control
+inheritance
+
+  {
+      legs = 4
+      cat {}
+      dog {}
+  }
+  {
+      legs = 2
+      bird {}
+  }
+
+parses to
+
+  $config = {
+              cat  => { legs => 4 }
+              dog  => { legs => 4 }
+              bird => { legs => 2 }
+            }
+
+Anonymous blocks may be nested.
+
+Each hash block also creates a scope.
+The hash does not inherit parameters from outside its own scope.
+
+
+=head2 Perl code evaluation
+
+If you can't express what you need within the C<Config::Scoped>
+syntax, your escape hatch is
+
+  eval { ... }
+
+This does a Perl C<eval> on the block,
+and replaces the construct with the results of the C<eval>.
+
+  start = eval { localtime }
+  foo   = eval { warn 'foo,' if $debug; return 'bar' }
+
+The block is evaluated in scalar context.
+However, it may return a list or hash reference,
+and the underlying list or hash can become a parameter value.
+For example
+
+  a
+  {
+    list = eval { [ 1 .. 3 ]		     }
+    hash = eval { { a => 1, b => 2, c => 3 } }
+  }
+
+parses to
+
+  $config = {
+	      a => { list => [ 1, 2, 3 ],
+	      	     hash => { a => 1, b => 2, c => 3 }
+	    }
+
+The block is evaluated inside the parser's C<Safe> compartment.
+Variables can be made available to the C<eval> by sharing them with
+the compartment. To set the C<$debug> variable in the example above, do
+
+  $compartment = new Safe 'MY_SHARE';
+  $MY_SHARE::debug = 1;
+  $parser = new Config::Scoped file => 'config.txt',
+			       safe => $compartment;
+  $config = $parser->parse;
+
+Only global variables can be shared with a compartment; lexical variables cannot.
+
+C<perl_code> is a synonym for C<eval>.
+
+
+=head2 Tokens and quoting
+
+A I<token> is a
+
+=over 4
+
+=item *
+
+declaration name
+
+=item *
+
+parameter name
+
+=item *
+
+hash key
+
+=item *
+
+scalar value
+
+=item *
+
+macro name
+
+=item *
+
+macro value
+
+=item *
+
+include path
+
+=item *
+
+warning name
+
+=back
+
+Any token may be quoted.
+Tokens that contain special characters must be quoted.
+The special characters are
+
+  \s {} [] <> () ; , ' " = # %
+
+C<Config::Scoped> uses the Perl quoting syntax.
+
+Tokens may be quoted with either single or double quotes
+
+  a = 'New York'
+  b = "New Jersey\n"
+
+Here-docs are supported
+
+  a = <<EOT
+  New York
+  New Jersey
+  EOT
+
+but generalized quotes (C<q()>, C<qq()>, etc.) are not. Text in
+here-docs is regarded as single-quoted if the delimiter is enclosed in
+single quotes, and double-quoted if the delimiter is enclosed in
+double quotes or unquoted.
+
+Double-quoted tokens are evaluated as Perl strings inside the parser's
+C<Safe> compartment. They are subject to the usual Perl backslash and
+variable interpolation, as well as macro expansion. Variables to be
+interpolated are passed via the C<Safe> compartment, as shown above in
+L</Perl code evaluation>. If you need a literal C<$> or C<@> in a
+double-quoted string, be sure to escape it with a backslash (C<\>) to
+suppress interpolation.
+
+An
+
+  eval { ... }
+
+may appear anywhere that a token is expected. For example
+
+  a
+  {
+      eval { 'b' . 'c' } = 1
+  }
+
+parses to
+
+  $config = { a => { bc => 1 } }
+
+=head1 DIRECTIVES
+
+C<Config::Scoped> has three directives: C<%macro>, C<%warning>, and
+C<%include>.
+
+=head2 Macros
+
+C<Config::Scoped> supports macros.
+A macro is defined with
+
+  %macro name value
+
+Macros may be defined
+
+=over 4
+
+=item *
+
+at file scope
+
+=item *
+
+within anonymous blocks
+
+=item *
+
+within declaration blocks
+
+=item *
+
+within hash blocks
+
+=back
+
+Macros defined within blocks are lexically scoped to those blocks.
+
+Macro substitution occurs
+
+=over 4
+
+=item *
+
+within B<any> double-quoted text
+
+=item *
+
+within the B<entirety> of Perl C<eval> blocks
+
+=item *
+
+nowhere else
+
+=back
+
+
+=head2 Include files
+
+C<Config::Scoped> supports include files.
+To include one config file within another, write
+
+  %include path/to/file
+
+C<%include> directives may appear
+
+=over 4
+
+=item *
+
+at file scope
+
+=item *
+
+within anonymous blocks
+
+=item *
+
+nowhere else
+
+=back
+
+In particular, C<%include> directives may not appear within
+declaration blocks or hash blocks.
+
+Parameters and macros in include files are imported to the current
+scope. You can control this scope with an anonymous block
+
+  {
+    %include dog.cfg
+    dog { }  # sees imports from dog.cfg
+  }
+  bird { }   # does not see imports from dog.cfg
+
+
+Warnings are scoped to the included file and do not leak to the parent file.
+
+Pathnames are either
+
+=over 4
+
+=item *
+
+absolute
+
+=item *
+
+relative to the dirname of the current configuration file
+
+=back
+
+For example, this config
+
+    # in configuration file /etc/myapp/global.cfg
+    %include shared.cfg
+
+includes the file F</etc/myapp/shared.cfg>.
+When parsing a configuration string,
+the path is relative to the current working directory.
+
+Include files are not actually included as text.
+Rather, they are processed by a recursive call to C<Config::Scoped>.
+Subclass implementers may need to be aware of this.
+
+=head2 Warnings
+
+C<Config::Scoped> can check for five problems with config files
+
+=over 4
+
+=item *
+
+duplicate declaration names
+
+=item *
+
+duplicate parameter definitions
+
+=item *
+
+duplicate macro definitions
+
+=item *
+
+insecure config file permissions
+
+=item *
+
+invalid config cache digests
+
+=back
+
+The API refers to these as "warnings", but they are actually errors,
+and if they occur, the parse fails and throws an exception. For
+consistency with the API, we'll use the term "warning" in the POD.
+
+The five warnings are identified by five predefined I<warning names>
+
+=over 4
+
+=item *
+
+C<declaration>
+
+=item *
+
+C<parameter>
+
+=item *
+
+C<macro>
+
+=item *
+
+C<permissions>
+
+=item *
+
+C<digests>
+
+=back
+
+The C<permissions> check requires that the config file
+
+=over 4
+
+=item *
+
+be owned by root or the real UID of the running process AND
+
+=item *
+
+have no group or world write permissions
+
+=back
+
+These restrictions help prevent an attacker from subverting a program by
+altering its config files.
+
+
+The C<store_cache> method computes MD5 checksums for the config file and all included files.
+These checksums are stored with the cached configuration.
+The C<retrieve_cache> method recomputes the checksums of the files and compares them to the stored values.
+The C<digests> check requires that the checksums agree.
+This helps prevent programs from relying on stale configuration caches.
+
+All warnings are enabled by default.
+Warnings can be disabled by passing the C<warning> key to the constructor,
+as shown in the L</SYNOPSIS>,
+or with the C<set_warnings> method.
+
+Warnings can also be controlled with the C<%warnings> directive, which has the form
+
+C<%warnings> [I<name>] C<off>|C<on>
+
+A C<%warnings> directive applies to the I<name>d warning,
+or to all warnings, if I<name> is omitted.
+
+C<%warnings> directives allow warnings to be turned on and off as
+necessary throughout the config file. A C<%warnings> directive may
+appear
+
+=over 4
+
+=item *
+
+at file scope
+
+=item *
+
+within anonymous blocks
+
+=item *
+
+within declaration blocks
+
+=item *
+
+within hash blocks
+
+=back
+
+Each C<%warnings> directive is lexically scoped to its enclosing file or block.
+
+Example
+
+  legs = 4
+  cat  {}
+  dog  {}
+  bird
+  {
+      legs = 2
+  }
+
+fails with a duplicate parameter warning, but
+
+  legs = 4
+  cat  {}
+  dog  {}
+  bird
+  {
+      %warnings parameter off;
+      legs = 2
+  }
+
+successfully parses to
+
+  $config = {
+              cat  => { legs => 4 }
+              dog  => { legs => 4 }
+              bird => { legs => 2 }
+            }
+
+
+=head1 Best practices
+
+As with all things Perl, there's more than one way to write configuration files.
+Here are some suggestions for writing config files that are concise, readable, and maintainable.
+
+=head2 Perl data
+
+C<Config::Scoped> accepts most Perl data syntax.
+This allows Perl data to pulled into config files largely unaltered
+
+  foo
+  {
+     a = 1;
+     b = [ 'red', 'green', 'blue' ];
+     c = { x => 5,
+  	   y => 6 };
+  }
+
+However, C<Config::Scoped> doesn't require as much punctuation as Perl,
+and config files written from scratch will be cleaner without it
+
+  foo
+  {
+     a = 1
+     b = [ red green blue ]
+     c = { x => 5
+  	   y => 6 }
+  }
+
+
+=head2 Anonymous blocks
+
+Don't use anonymous blocks unless you need to restrict the scope of
+something. In particular, there is no need for a top-level anonymous
+block around the whole config file
+
+  {		# unnecessary
+      foo { }
+  }
+
+=head2 Inheritance
+
+Parameters that are outside of a declaration are inherited by B<all>
+following declarations in their scope. Don't do this unless you mean it
+
+  wheels = 4
+  car
+  {
+      # OK
+  }
+  cat
+  {
+      # I can haz weelz?
+  }
+
+
+=head2 Blocks, blocks, we got blocks...
+
+C<Config::Scoped> has four different kinds of blocks
+
+=over 4
+
+=item *
+
+anonymous
+
+=item *
+
+declaration
+
+=item *
+
+C<eval>
+
+=item *
+
+hash
+
+=back
+
+They all look the same, but they aren't, and they have different rules
+and restrictions. See L</CONFIG FILE FORMAT> for descriptions of each.
+
+=head2 Macros
+
+Macros are evil, and C<Config::Scoped> macros are specially evil,
+because
+
+=over 4
+
+=item *
+
+they don't respect token boundaries
+
+=item *
+
+where multiple substitutions are possible,
+the substitution order is undefined
+
+=item *
+
+substituted text may or may not be rescanned for further substitutions
+
+=back
+
+Caveat scriptor.
+
+
+=head1 SUBCLASSING
+
+C<Config::Scoped> has no formally defined subclass interface. Here are
+some guidelines for writing subclasses. Implementers who override (or
+redefine) base class methods may need to read the C<Config::Scoped>
+sources for more information.
+
+Arbitrary
+
+  $key => $value
+
+pairs may be passed to the C<Config::Scoped> constructor. They will be
+stored in the I<$parser> object, and methods may access them with code
+like
+
+  $parser->{local}{$key}
+
+To avoid conflict with existing keys in the C<local> hash,
+consider distinguishing your keys with a unique prefix.
+
+Arbitrary warning names may be defined, set with C<new> and
+C<set_warnings>, used in C<%warnings> directives, and tested with
+C<warnings_on>. Methods can call C<warnings_on> to find out whether a
+warning is currently enabled.
+
+All methods throw exceptions (C<die>) on error. The exception object
+should be a subclass of C<Config::Scoped::Error>. You can use one of
+the classes defined in C<Config::Scoped::Error>, or you can derive
+your own. This code
+
+  throw Config::Scoped::Error -file => $parser->_get_file(%args),
+      			      -line => $parser->_get_line(%args),
+      			      -text => $message;
+
+will generate an error message that reports the location in the config
+file where the error was detected, rather than a location in Perl
+code.
+
+C<Config::Scoped> performs validation checks on the elements of
+configuration files (declarations, parameters, macros, etc). Here are
+the interfaces to the validation methods. Subclasses can override
+these methods to modify or extend the validation checks.
+
+=over 4
+
+=item I<$macro_value> = I<$parser>->C<macro_validate>(C<name> => I<$name>, C<value> => I<$value>)
+
+Called for each C<%macro> directive.
+
+Receives the I<$name> and I<$value> from the directive.
+The returned I<$macro_value> becomes the actual value of the macro.
+
+If the macro is invalid,
+throws a C<Config::Scoped::Error::Validate::Macro> exception.
+
+
+=item I<$param_value> = I<$parser>->C<parameter_validate>(C<name> => I<$name>, C<value> => I<$value>)
+
+Called for each parameter definition.
+
+Receives the I<$name> and I<$value> from the definition.
+The returned I<$param_value> becomes the actual value of the parameter.
+
+If the parameter is invalid,
+throws a C<Config::Scoped::Error::Validate::Parameter> exception.
+
+
+=item I<$parser>->C<declaration_validate>(C<name> => I<$name>, C<value> => I<$value>, C<tail> => I<$tail>)
+
+Called for each declaration.
+
+I<$name> is an array ref giving the chain of names for the
+declaration block. I<$value> is a hash ref containing all the
+parameters in the declaration block. I<$tail> is a hash ref containing
+all the parameters in any previously defined declaration with the same
+name(s).
+
+For example, the declaration
+
+  foo bar baz { a=1 b=2 }
+
+leads to the call
+
+  $parser->declaration_validate(name  => [ qw(foo bar baz) ],
+        			value => { a => '1', b => '2' },
+        			tail  => $parser->{local}{config}{foo}{bar}{baz});
+
+The method can test %$tail to discover if there is an existing,
+non-empty declaration with the same name(s).
+
+The method has no return value. However, the method can alter the
+contents of %$value. Upon return, the parameters in %$value become the
+actual contents of the declaration block.
+
+If the declaration is invalid,
+throws a C<Config::Scoped::Error::Validate::Declaration> exception.
+
+
+=item I<$parser>->C<permissions_validate>(file => I<$file>, handle => I<$handle>)
+
+Called for the config file, each included file, and each retrieved cache file.
+One of I<$file> or I<$handle> will be non-null.
+
+Throws a C<Config::Scoped::Error::Validate::Permissions> exception if
+the file is not safe to read.
+
+
+=back
+
+
+=head1 SEE ALSO
+
+=over 4
+
+=item *
+
+C<Error>
+
+=item *
+
+C<Safe>
+
+=item *
+
+C<Config::Scoped::Error>
+
+=item *
+
+C<Parse::RecDescent>
+
+=item *
+
+L<perlop/Quote and Quote-like Operators>
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item C<Parse::RecDescent> patch
+
+Test if the P::RD patch is still needed for P::RD newer than 1.94.
+
+The P::RD patch is used in this package to enable inheritance for
+precompiled grammar packages. C<P::RD> works fine with inheritance but
+not the precompiled packages. In the precompiled packages the
+one-argument form of C<bless> is used, this is the main problem. I
+patched C<P::RD> to create inheritable precompiled packages from the
+grammar files. This does NOT mean you have to patch YOUR C<P::RD>
+installation! The patch is only necessary to create the
+C<Config::Scoped::Precomp> package from the grammar file. If someone
+wants to play with the grammar, use the patched C<R::RD> in this
+distribution.
+
+=item Tests
+
+Still more tests needed.
+
+=back
+
+=head1 BUGS
+
+If you find parser bugs, please send the stripped down config file and
+additional version information to the author.
+
+=head1 CREDITS
+
+Inspired by the application specific configuration file parser of the
+ToGather project, written by Rainer Bawidamann. Danke Rainer.
+
+POD by Steven W. McDougall E<lt>swmcd@world.std.comE<gt>
+
+=head1 AUTHOR
+
+Karl Gaissmaier E<lt>karl.gaissmaier at uni-ulm.deE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (c) 2004-2009 by Karl Gaissmaier
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
