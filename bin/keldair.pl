@@ -101,6 +101,18 @@ sub snd {
 }
 
 sub msg {
-    my ($chan,$text) = @_;
-    snd("PRIVMSG ".$chan." :".$text);
+    my ($target,$text) = @_;
+    snd("PRIVMSG ".$target." :".$text);
 }
+
+sub notice {
+    my ($target,$text) = @_;
+    snd("NOTICE ".$target." :".$text);
+}
+
+sub ctcp {
+    my ($ctcp,$target) = @_;
+    snd("PRIVMSG ".$target." :\001".$text."\001");
+}
+
+
