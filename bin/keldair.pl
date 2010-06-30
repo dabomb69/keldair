@@ -33,6 +33,7 @@
 
 use strict;
 use warnings;
+use lib 'lib';
 use IO::Socket;
 use Config::Scoped;
 
