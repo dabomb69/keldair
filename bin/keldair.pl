@@ -38,6 +38,10 @@ use IO::Socket;
 use File::Data;
 use Config::Scoped;
 
+open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
+open STDOUT, '>/dev/null' or die "Can't write to /dev/null: $!";
+open STDERR, '>&STDOUT'	or die "Can't dup stdout: $!";
+
 my $rawlog = File::Data->new('var/raw.log');
 
 my $parser = Config::Scoped->new(
@@ -72,9 +76,9 @@ while ($line = <$sock>) {
 
 # Hey, let's print the line too!
 	print($line."\r\n");
-	
+
 # Hell, why not? Let's log it too, for teh lulz!
-    $rawlog->append(time." ".$line."\n");
+	$rawlog->append(time." ".$line."\n");
 
 # Now, time to /extract/ those there variables!
 	$hostmask = substr($line,index($line,":"));
