@@ -15,6 +15,8 @@ _  _   ___   _      ___     _     ___   ____
 print($ascii."\n\n");
 print("Welcome to the Keldair setup wizard!\nPlease follow the instructions to ensure proper results.\n\n");
 
+`mkdir etc`;
+
 my $file = './etc/keldair.conf';
 
 `touch $file`;
@@ -77,6 +79,7 @@ $setup->prepend('#!/bin/sh'."\n");
 $setup->append('echo 'Starting Keldair.....'; echo "\n"');
 $setup->append('perl ./bin/keldair.pl');
 
+`mkdir var`;
 `touch var/keldair.log`;
 `touch var/raw.log`;
 
