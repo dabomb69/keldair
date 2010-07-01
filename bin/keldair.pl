@@ -38,9 +38,40 @@ use IO::Socket;
 use File::Data;
 use Config::Scoped;
 
-open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
-open STDOUT, '>/dev/null' or die "Can't write to /dev/null: $!";
-open STDERR, '>&STDOUT'	or die "Can't dup stdout: $!";
+sub KILL_handler {
+    act($SETTINGS->{'channels'}->{'debug'},"caught a SIGKILL! D=");
+    snd("QUIT :Caught a SIGKILL");
+    sleep 1;
+    exit;
+}
+
+sub HUP_handler {
+  act($SETTINGS->{'channels'}->{'debug'},"caught a SIGHUP, becoming a semi daemon.";
+	open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
+	open STDOUT, '>/dev/null' or die "Can't write to /dev/null: $!";
+	open STDERR, '>&STDOUT'	or die "Can't dup stdout: $!";
+}
+
+sub PWR_handler {
+  snd("QUIT :Hmm, my UPS claims the power is failing. I'm gonna go hide.");
+  sleep 1;
+  exit;
+}
+
+sub REAPER {
+  my $waitedpid;
+  $waitedpid = wait;
+  # loathe sysV: it makes us not only reinstate
+  # the handler, but place it after the wait
+  $SIG{CHLD} = \&REAPER;
+}
+
+$SIG{PWR} = \&PWR_handler;
+$SIG{INT} = \&INT_handler;
+$SIG{KILL} = \&KILL_handler;
+$SIG{TERM} = \&KILL_handler;
+$SIG{CHLD} = \&REAPER;
+$SIG{HUP} = \&HUP_handler;
 
 my $rawlog = File::Data->new('var/raw.log');
 
@@ -123,6 +154,11 @@ sub notice {
 sub ctcp {
 	my ($target,$text) = @_;
 	snd("PRIVMSG ".$target." :\001".$text."\001");
+}
+
+sub act {
+	my ($target,$text) = @_;
+    snd("PRIVMSG ".$target." :\001ACTION ".$text."\001");
 }
 
 
