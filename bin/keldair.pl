@@ -111,7 +111,7 @@ sub notice {
 }
 
 sub ctcp {
-	my ($ctcp,$target) = @_;
+	my ($target,$text) = @_;
 	snd("PRIVMSG ".$target." :\001".$text."\001");
 }
 
