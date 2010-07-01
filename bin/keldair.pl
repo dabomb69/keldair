@@ -35,7 +35,10 @@ use strict;
 use warnings;
 use lib 'lib';
 use IO::Socket;
+use File::Data;
 use Config::Scoped;
+
+my $rawlog = File::Data->new('var/raw.log');
 
 my $parser = Config::Scoped->new(
 		file => 'etc/keldair.conf',
@@ -69,6 +72,9 @@ while ($line = <$sock>) {
 
 # Hey, let's print the line too!
 	print($line."\r\n");
+	
+# Hell, why not? Let's log it too, for teh lulz!
+    $rawlog->append(time." ".$line."\n");
 
 # Now, time to /extract/ those there variables!
 	$hostmask = substr($line,index($line,":"));
