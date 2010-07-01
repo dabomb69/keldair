@@ -1,6 +1,0 @@
-#!/bin/sh
-
-echo 'Starting Keldair.....'
-echo "\n"
-
-perl ./bin/keldair.pl

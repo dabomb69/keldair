@@ -70,6 +70,16 @@ $config->append('    real = "'.$areal.'"'."\n");
 $config->append('    email = \''.$amail.'\''."\n");
 $config->append('}'."\n\n");
 
+`touch keldair';
+my $setup = File::Data->new('./keldair');
+
+$setup->prepend('#!/bin/sh'."\n");
+$setup->append('echo 'Starting Keldair.....'; echo "\n"');
+$setup->append('perl ./bin/keldair.pl');
+
+`touch var/keldair.log`;
+`touch var/raw.log`;
+
 print("Keldair setup is now complete!\nRun ./keldair to start the bot!\n");
 
 

@@ -38,81 +38,81 @@ use IO::Socket;
 use Config::Scoped;
 
 my $parser = Config::Scoped->new(
-    file => 'etc/keldair.conf',
-) or die("Cannot open config file!\n");
+		file => 'etc/keldair.conf',
+		) or die("Cannot open config file!\n");
 
 my $SETTINGS = $parser->parse;
 
 my $sock = IO::Socket::INET->new(	
-        Proto           => "tcp",	
-        PeerAddr        => $SETTINGS->{'server'}->{'host'},	
-        PeerPort        => $SETTINGS->{'server'}->{'port'},	
-) or die("Connection failed to $SETTINGS->{'server'}->{'host'}. \n");
+		Proto           => "tcp",	
+		PeerAddr        => $SETTINGS->{'server'}->{'host'},	
+		PeerPort        => $SETTINGS->{'server'}->{'port'},	
+		) or die("Connection failed to $SETTINGS->{'server'}->{'host'}. \n");
 
 my ($line,$nickname,$command,$mtext,$hostmask,$channel,@spacesplit);
 
 # Ok, I do believe connecting is important, eh? :P
-    snd('USER '.$SETTINGS->{'keldair'}->{'ident'}.' * * :'.$SETTINGS->{'keldair'}->{'real'});
-    snd("NICK ".$SETTINGS->{'keldair'}->{'nick'});
+snd('USER '.$SETTINGS->{'keldair'}->{'ident'}.' * * :'.$SETTINGS->{'keldair'}->{'real'});
+snd("NICK ".$SETTINGS->{'keldair'}->{'nick'});
 
 while ($line = <$sock>) {
-    
-    # First, since this is a loop, we undefine all the special and REALLY IMPORTANT variables!
-    undef $nickname;
-    undef $command;
-    undef $mtext;
-    undef $hostmask;
-    
-    # Mkay, now let's kill off those \r\n's at the end of $line.
-    chomp($line);
-    chomp($line);
-    
-    # Hey, let's print the line too!
-    print($line."\r\n");
-    
-    # Now, time to /extract/ those there variables!
-    $hostmask = substr($line,index($line,":"));
-    $mtext = substr($line,index($line,":",index($line,":")+1)+1);
-    ($hostmask, $command) = split(" ",substr($line,index($line,":")+1));
-    ($nickname,undef) = split("!",$hostmask);
-    
-    @spacesplit = split(" ",$line);
-    $channel = $spacesplit[2];
 
-    # Now, time for some commandish stuff!
-    
-    if ($command eq '001') {
-        snd("JOIN ".$SETTINGS->{'channels'}->{'debug'}.",".$SETTINGS->{'channels'}->{'general'});
-    }
-    
-    if ($command eq 'PRIVMSG') {
-        }
+# First, since this is a loop, we undefine all the special and REALLY IMPORTANT variables!
+	undef $nickname;
+	undef $command;
+	undef $mtext;
+	undef $hostmask;
+
+# Mkay, now let's kill off those \r\n's at the end of $line.
+	chomp($line);
+	chomp($line);
+
+# Hey, let's print the line too!
+	print($line."\r\n");
+
+# Now, time to /extract/ those there variables!
+	$hostmask = substr($line,index($line,":"));
+	$mtext = substr($line,index($line,":",index($line,":")+1)+1);
+	($hostmask, $command) = split(" ",substr($line,index($line,":")+1));
+	($nickname,undef) = split("!",$hostmask);
+
+	@spacesplit = split(" ",$line);
+	$channel = $spacesplit[2];
+
+# Now, time for some commandish stuff!
+
+	if ($command eq '001') {
+		snd("JOIN ".$SETTINGS->{'channels'}->{'debug'}.",".$SETTINGS->{'channels'}->{'general'});
+	}
+
+	if ($command eq 'PRIVMSG') {
+	}
 }
 
 
 # Oh look, a nice empty chunk of land for the really important subs!!!
 
 sub snd {
-  my ($text) = @_;
-  chomp ($text);
-  print("SEND: $text\r\n");
-  send($sock,$text."\r\n",0);
-  return;
+	my ($text) = @_;
+	chomp ($text);
+	print("SEND: $text\r\n");
+	send($sock,$text."\r\n",0);
+	return;
 }
 
 sub msg {
-    my ($target,$text) = @_;
-    snd("PRIVMSG ".$target." :".$text);
+	my ($target,$text) = @_;
+	snd("PRIVMSG ".$target." :".$text);
 }
 
 sub notice {
-    my ($target,$text) = @_;
-    snd("NOTICE ".$target." :".$text);
+	my ($target,$text) = @_;
+	snd("NOTICE ".$target." :".$text);
 }
 
 sub ctcp {
-    my ($ctcp,$target) = @_;
-    snd("PRIVMSG ".$target." :\001".$text."\001");
+	my ($ctcp,$target) = @_;
+	snd("PRIVMSG ".$target." :\001".$text."\001");
 }
 
 
