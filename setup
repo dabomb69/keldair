@@ -76,7 +76,7 @@ $config->append('}'."\n\n");
 my $setup = File::Data->new('./keldair');
 
 $setup->prepend('#!/bin/sh'."\n");
-$setup->append('echo \'Starting Keldair.....\'; echo "\n"');
+$setup->append('echo \'Starting Keldair.....\'; echo "\n"'."\n");
 $setup->append('perl ./bin/keldair.pl');
 
 `chmod 755 keldair`;
