@@ -72,11 +72,11 @@ $config->append('    real = "'.$areal.'"'."\n");
 $config->append('    email = \''.$amail.'\''."\n");
 $config->append('}'."\n\n");
 
-`touch keldair';
+`touch keldair`;
 my $setup = File::Data->new('./keldair');
 
 $setup->prepend('#!/bin/sh'."\n");
-$setup->append('echo 'Starting Keldair.....'; echo "\n"');
+$setup->append('echo \'Starting Keldair.....\'; echo "\n"');
 $setup->append('perl ./bin/keldair.pl');
 
 `mkdir var`;
