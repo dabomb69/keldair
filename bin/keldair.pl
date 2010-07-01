@@ -136,7 +136,7 @@ sub KILL_handler {
 }
 
 sub HUP_handler {
-  act($SETTINGS->{'channels'}->{'debug'},"caught a SIGHUP, becoming a semi daemon.";
+  act($SETTINGS->{'channels'}->{'debug'},"caught a SIGHUP, becoming a semi daemon.");
 	open STDIN, '/dev/null' or die "Can't read /dev/null: $!";
 	open STDOUT, '>/dev/null' or die "Can't write to /dev/null: $!";
 	open STDERR, '>&STDOUT'	or die "Can't dup stdout: $!";
