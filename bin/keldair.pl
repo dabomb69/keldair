@@ -52,7 +52,7 @@ my $sock = IO::Socket::INET->new(
 		PeerPort        => $SETTINGS->{'server'}->{'port'},	
 		) or die("Connection failed to $SETTINGS->{'server'}->{'host'}. \n");
 
-my ($line,$nickname,$command,$mtext,$hostmask,$channel,@spacesplit);
+my ($line,$nickname,$command,$mtext,$hostmask,$channel,$firstword,@spacesplit,@words);
 
 # Ok, I do believe connecting is important, eh? :P
 snd('USER '.$SETTINGS->{'keldair'}->{'ident'}.' * * :'.$SETTINGS->{'keldair'}->{'real'});
@@ -81,6 +81,8 @@ while ($line = <$sock>) {
 	$mtext = substr($line,index($line,":",index($line,":")+1)+1);
 	($hostmask, $command) = split(" ",substr($line,index($line,":")+1));
 	($nickname,undef) = split("!",$hostmask);
+    @words = split(' ', $mtext);
+    $firstword = $words[0];
 
 	@spacesplit = split(" ",$line);
 	$channel = $spacesplit[2];
